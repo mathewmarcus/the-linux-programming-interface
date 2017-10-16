@@ -86,7 +86,6 @@ void sparse_cp(int src, int dst) {
   ssize_t byte;
   char *buffer;
   int nullBytes = 0;
-  off_t offset;
 
   if (!(buffer = malloc(sizeof(char)))) {
     fprintf(stderr, "Failed to allocate memory for buffer");
@@ -99,7 +98,7 @@ void sparse_cp(int src, int dst) {
       continue;
     }
     else if (nullBytes) {
-      if ((offset = lseek(dst, nullBytes, SEEK_CUR)) == -1) {
+      if (lseek(dst, nullBytes, SEEK_CUR) == -1) {
     	perror("Failed to create file hole");
     	exit(1);
       }
@@ -112,7 +111,7 @@ void sparse_cp(int src, int dst) {
   }
 
   if (nullBytes) {
-    if ((offset = lseek(dst, nullBytes, SEEK_CUR)) == -1) {
+    if (lseek(dst, nullBytes, SEEK_CUR) == -1) {
       perror("Failed to create file hole");
       exit(1);
     }
