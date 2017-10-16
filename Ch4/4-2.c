@@ -110,13 +110,6 @@ void sparse_cp(int src, int dst) {
     }
   }
 
-  if (nullBytes) {
-    if (lseek(dst, nullBytes, SEEK_CUR) == -1) {
-      perror("Failed to create file hole");
-      exit(1);
-    }
-  }
-
   if (byte == -1) {
     perror("File read error");
     exit(1);
