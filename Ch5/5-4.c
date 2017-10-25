@@ -22,5 +22,4 @@ int my_dup2(int old_fd, int new_fd) {
   }
 
   return fcntl(old_fd, F_DUPFD, new_fd);
-    
 }
