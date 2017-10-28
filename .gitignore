@@ -1,2 +1,6 @@
 tlpi-dist/*
 *~
+*.bak
+*.out
+*.o
+*.txt
