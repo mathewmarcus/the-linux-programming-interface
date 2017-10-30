@@ -1,0 +1,11 @@
+int foo;
+       Global: variable is declared and defined here, and viewable everywhere
+       Local: variable is declared and defined here, and viewable only in this function
+
+extern int foo;
+       Global: variable is (re)declared in this file, defined elsewhere, and viewable everywhere
+       Local: variable is (re)declared in this function, defined elsewhere, and viewable only in this function
+
+static int foo;
+       Global: variable is declared and defined here, and only viewable in this file
+       Local: variable is declared and defined here, and viewable only in this function and retains value between function calls

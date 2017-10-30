@@ -1,0 +1,38 @@
+Q. Compile the program in Listing 6-1 ( mem_segments.c ), and list its size using ls –l.
+   Although the program contains an array (mbuf) that is around 10 MB in size, the
+   executable file is much smaller than this. Why is this?
+
+A. This is simply because mbuf is merely declared, not initialized, and thus it is included in the
+   unitialized data segment (bss). Allocation for the uninitialized data segment only happens when
+   the program is loaded into memory/executed. In contrast, disk space is only allocated for data
+   in the initialized data segment, specifically for global and static variables which have been
+   both declared AND initialized.
+
+   The `size` command will illustrate the different between these two sections, as well as the readonly
+   text section.
+
+Eg.
+	1. static char mbuf[10240000]; /* Uninitialized data segment, no disk space in executable */
+	2. static char mbuf[] = {1...10240000}; /* Initialized data segment, ~1Mg disk space in executable */
+   
+
+3 Sections:
+  1. Text
+  2. Initialized data segment (data)
+  3. Unitialized data segment (bss)
+
+Another interesting point to note, is the storing of constants in the procces text section
+
+Eg. (Note, this does not account for an optimizer which may store frequently accessed variables in a register)
+	1. char *a = "Hello world\n";
+	   1. Global/Static: stored in text, READONLY
+	   2. Local: stored in TEXT, READONLY
+	2. char a[] = "Hello world\n";
+	   1. Global/Static: stored in Initialized Data Segment, (READ/WRITE)
+	   2. Local: not stored on disk, space allocated on stack at run-time (READ/WRITE)
+	3. char a[12];
+	   1. Global/Static: stored in Uninitialized Data Segment, (READ/WRITE)
+	   2. Local: not stored on disk, space allocated on stack at run-time (READ/WRITE)
+	4. char *a = malloc(sizeof(char) * 12);
+	   1. Global/Static: ERROR: initializer element is not constant
+	   2. Local: not stored on disk, space allocated on heap at run-timie (READ/WRITE)
