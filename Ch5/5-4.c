@@ -5,11 +5,11 @@
 #include <errno.h>
 #include <string.h>
 
-int my_dup(int old_fd) {
+int dup(int old_fd) {
   return fcntl(old_fd, F_DUPFD, 0);
 }
 
-int my_dup2(int old_fd, int new_fd) {
+int dup2(int old_fd, int new_fd) {
   if (old_fd == new_fd) { /* old file descriptor is the same as new file descriptor, return this value */
     fprintf(stderr, "File descriptors are identical\n");
     return new_fd;

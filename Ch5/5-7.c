@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-ssize_t my_writev(int fd , const struct iovec *iov , int iovcnt) {
+ssize_t writev(int fd , const struct iovec *iov , int iovcnt) {
   char *buffer;
   int len, j;
   ssize_t bytes;
@@ -28,7 +28,7 @@ ssize_t my_writev(int fd , const struct iovec *iov , int iovcnt) {
   return bytes;
 }
 
-ssize_t my_readv(int fd , const struct iovec *iov , int iovcnt) {
+ssize_t readv(int fd , const struct iovec *iov , int iovcnt) {
   char *buffer;
   int len, j;
   ssize_t bytes;
