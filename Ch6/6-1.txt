@@ -25,8 +25,8 @@ Another interesting point to note, is the storing of constants in the procces te
 
 Eg. (Note, this does not account for an optimizer which may store frequently accessed variables in a register)
 	1. char *a = "Hello world\n";
-	   1. Global/Static: stored in text, READONLY
-	   2. Local: stored in TEXT, READONLY
+	   1. Global/Static: stored in Initialized Data Segment, READONLY
+	   2. Local: stored in Initialized Data Segment, READONLY
 	2. char a[] = "Hello world\n";
 	   1. Global/Static: stored in Initialized Data Segment, (READ/WRITE)
 	   2. Local: not stored on disk, space allocated on stack at run-time (READ/WRITE)
