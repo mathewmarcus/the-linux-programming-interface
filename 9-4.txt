@@ -1,0 +1,31 @@
+UNPRIVLEGED
+
+a) Suspend and resume the set-user-ID identity (i.e., switch the effective user
+ID to the value of the real user ID and then back to the saved set-user-ID)
+   1) /* setuid */
+      uid_t saved_uid = geteuid();
+      setuid(getuid());
+      setuid(saved_uid);
+   2) /* seteuid */
+      uid_t saved_uid = geteuid();
+      seteuid(getuid());
+      seteuid(saved_uid);
+   3) /* setreuid */
+      uid_t saved_uid = geteuid();
+      setreuid(-1, getuid());
+      setreuid(-1, saved_uid);
+   4) /* setresuid */
+      uid_t saved_uid = geteuid();
+      setresuid(-1, getuid(), -1);
+      setresuid(-1, saved_uid, -1);
+
+b) Permanently drop the set-user-ID identity (i.e., ensure that the effective
+user ID and the saved set-user-ID are set to the value of the real user ID).
+     1) /* setuid */
+     	NOT POSSIBLE: setuid can only change the effective uid in unprivileged processes
+     2) /* seteuid */
+	NOT POSSIBLE: seteuid can only change the effective uid
+     3) /* setreuid */
+     	setreuid(getuid(), getuid())
+     4) /* setresuid */
+     	setresuid(getuid(), getuid(), getuid();
