@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <stdio.h>
 
 
 typedef struct process {
@@ -16,6 +17,7 @@ typedef struct process {
 
 Process *newProcess(pid_t pid, char *cmd);
 void delProcess(Process *proc);
-Process *buildTree(void);
 uid_t userName2UID(const char *username);
 int add2Tree(Process *tree, Process *new_proc, pid_t ppid);
+Process *buildTree(void);
+char *getProcValue(char *key, FILE *proc_status);
