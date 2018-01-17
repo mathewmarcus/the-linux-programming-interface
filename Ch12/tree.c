@@ -34,7 +34,6 @@ void delProcess(Process *proc) {
   if (proc->sibling)
     delProcess(proc->sibling);
 
-  fprintf(stderr, "DEBUG: deleting process %u:%s\n", proc->pid, proc->cmd);
   free(proc->cmd);
   free(proc);
 }
@@ -59,11 +58,8 @@ int add2Tree(Process *tree, Process *new_proc, pid_t ppid) {
   if (!tree)
     return 0;
 
-  fprintf(stderr, "DEBUG: Attempting to add process %u as child of %u and current process is %u\n", new_proc->pid, ppid, tree->pid);
   if (tree->pid == ppid) { /* Found parent */
-    fprintf(stderr, "DEBUG: Found parent of process %u\n", new_proc->pid);
     if (!tree->child) /* If parent has no children, set child = new_proc */ {
-      fprintf(stderr, "DEBUG: process %u added as FIRST child of %u\n", new_proc->pid, ppid);      
       tree->child = new_proc;
     }
     else { /* Else, add new_proc as last sibling of current child */
@@ -72,18 +68,14 @@ int add2Tree(Process *tree, Process *new_proc, pid_t ppid) {
 	tree = tree->sibling;
       }
       tree->sibling = new_proc;
-      fprintf(stderr, "DEBUG: process %u added as sibling of %u\n", tree->sibling->pid, tree->pid);
     }
-    fprintf(stderr, "DEBUG: process %u added as child of %u\n", new_proc->pid, ppid);
     return 1;
   }
   else { /* Did not find parent */
     if (tree->child) /* First, search through existing children */ {
-      fprintf(stderr, "DEBUG: Searching children process %u as child of %u and current process is %u\n", new_proc->pid, ppid, tree->pid);
       result = add2Tree(tree->child, new_proc, ppid);
     }
     if (!result && tree->sibling) /* Then, if parent still remains to be found, search through siblings */ {
-      fprintf(stderr, "DEBUG: Searching siblings process %u as child of %u and current process is %u\n", new_proc->pid, ppid, tree->pid);
       result = add2Tree(tree->sibling, new_proc, ppid);
     }
     return result;
