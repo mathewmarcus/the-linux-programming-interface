@@ -39,6 +39,20 @@ void delProcess(Process *proc) {
   free(proc);
 }
 
+void displayTree(Process *tree, unsigned int num_spaces) {
+  for (unsigned int i = 0; i < num_spaces; i++)
+    printf("%c", '\t');
+
+  printf("PID: %u, CMD: %s", tree->pid, tree->cmd);
+
+  if (tree->child)
+    displayTree(tree->child, num_spaces+1);
+
+  if (tree->sibling)
+    displayTree(tree->sibling, num_spaces);
+}
+
+
 int add2Tree(Process *tree, Process *new_proc, pid_t ppid) {
   int result = 0;
 
@@ -64,25 +78,16 @@ int add2Tree(Process *tree, Process *new_proc, pid_t ppid) {
     return 1;
   }
   else { /* Did not find parent */
-    fprintf(stderr, "DEBUG: In else block process %u and current process is %u\n", new_proc->pid, tree->pid);
     if (tree->child) /* First, search through existing children */ {
-      fprintf(stderr, "DEBUG: Searching children process %u and current process is %u\n", new_proc->pid, tree->pid);
+      fprintf(stderr, "DEBUG: Searching children process %u as child of %u and current process is %u\n", new_proc->pid, ppid, tree->pid);
       result = add2Tree(tree->child, new_proc, ppid);
-      if (result)
-	fprintf(stderr, "DEBUG: Found parent of process %u and current process is %u\n", new_proc->pid, tree->pid);
-      else
-	fprintf(stderr, "DEBUG: Did not find parent of process %u, current process is %u, result is %u\n", new_proc->pid, tree->pid, result);
     }
-    if (new_proc->pid == 4 && tree->pid == 1)
-      fprintf(stderr, "process %u %u %u FUCK\n", new_proc->pid, tree->sibling->pid, result);
-    
     if (!result && tree->sibling) /* Then, if parent still remains to be found, search through siblings */ {
-      fprintf(stderr, "DEBUG: Search siblings for parent of process %u\n", new_proc->pid);
-      add2Tree(tree->sibling, new_proc, ppid);
+      fprintf(stderr, "DEBUG: Searching siblings process %u as child of %u and current process is %u\n", new_proc->pid, ppid, tree->pid);
+      result = add2Tree(tree->sibling, new_proc, ppid);
     }
+    return result;
   }
-
-  return 0;
   
 }
 
@@ -154,7 +159,7 @@ Process *buildTree(void) {
     exit(1);
   }
 
-  proc_tree = newProcess(0, "TREE");
+  proc_tree = newProcess(0, "TREE\n");
   
   while ((proc_entry = readdir(proc))) {
     if ((proc_entry->d_type & DT_DIR) &&  /* This not portable but, given that the stat(2) system call is not covered until Chapter 15, this will suffice */
@@ -179,9 +184,10 @@ Process *buildTree(void) {
 
       if (!sscanf(getProcValue("PPid", proc_stat_file), "%u", &ppid))
 	continue;
-      printf("%u\n", pid);
+
       process = newProcess(pid, getProcValue("Name", proc_stat_file));
       add2Tree(proc_tree, process, ppid);
+
       fclose(proc_stat_file);
       proc_stat_filename[0] = '\0';
     }

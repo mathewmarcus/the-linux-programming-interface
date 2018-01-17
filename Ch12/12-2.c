@@ -30,7 +30,8 @@
 
 int main(int argc, char *argv[argc])
 {
-  buildTree();
+  Process *tree = buildTree();
+  displayTree(tree->child, 0);
   return 0;
 }
 
