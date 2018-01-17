@@ -5,7 +5,6 @@
 #include <pwd.h>
 #include <dirent.h>
 
-
 #include "tree.h"
 
 
@@ -59,25 +58,21 @@ int add2Tree(Process *tree, Process *new_proc, pid_t ppid) {
     return 0;
 
   if (tree->pid == ppid) { /* Found parent */
-    if (!tree->child) /* If parent has no children, set child = new_proc */ {
+    if (!tree->child) /* If parent has no children, set child = new_proc */
       tree->child = new_proc;
-    }
     else { /* Else, add new_proc as last sibling of current child */
       tree = tree->child;
-      while (tree->sibling) {
+      while (tree->sibling)
 	tree = tree->sibling;
-      }
       tree->sibling = new_proc;
     }
     return 1;
   }
   else { /* Did not find parent */
-    if (tree->child) /* First, search through existing children */ {
+    if (tree->child) /* First, search through existing children */
       result = add2Tree(tree->child, new_proc, ppid);
-    }
-    if (!result && tree->sibling) /* Then, if parent still remains to be found, search through siblings */ {
+    if (!result && tree->sibling) /* Then, if parent still remains to be found, search through siblings */
       result = add2Tree(tree->sibling, new_proc, ppid);
-    }
     return result;
   }
   
@@ -108,7 +103,7 @@ char *getProcValue(char *key, FILE *proc_status) {
   }
   
   if (fseek(proc_status, 0, SEEK_SET) == -1) {
-    fprintf(stderr, "Failed to find: %s\n", key);
+    fprintf(stderr, "Failed to find %s: %s\n", key, strerror(errno));
     return NULL;
   }
 
@@ -162,9 +157,8 @@ Process *buildTree(void) {
 
       proc_stat_file = fopen(proc_stat_filename, "r");
       if (!proc_stat_file) {
-	if (errno == ENOENT) {
+	if (errno == ENOENT)
 	  continue;
-	}
 	else {
 	  fprintf(stderr, "Failed to open %s:%s\n", proc_stat_filename, strerror(errno));
 	  continue;
