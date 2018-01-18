@@ -4,20 +4,9 @@
 #include <string.h>
 #include <pwd.h>
 #include <dirent.h>
+#include <stdarg.h>
 
 #include "tree.h"
-
-
-static Process *proc_tree;
-
-
-void initTree() {
-  proc_tree = newProcess(0, "TREE\n");
-}
-
-void delTree() {
-  delProcess(proc_tree);
-}
 
 
 Process *newProcess(pid_t pid, char *cmd) {
@@ -104,13 +93,8 @@ uid_t userName2UID(const char *username) {
 
 char *getProcValue(char *key, FILE *proc_status) {
   int key_len = strlen(key);
-  char *proc_status_line = calloc(PROC_STAT_CONTENTS_MAX_LEN, sizeof(char));
+  static char proc_status_line[PROC_STAT_CONTENTS_MAX_LEN];
 
-  if (!proc_status_line) {
-    perror("Failed to allocate space for /proc/PID/status in line");
-    exit(1);
-  }
-  
   if (fseek(proc_status, 0, SEEK_SET) == -1) {
     fprintf(stderr, "Failed to find %s: %s\n", key, strerror(errno));
     return NULL;
@@ -127,77 +111,55 @@ char *getProcValue(char *key, FILE *proc_status) {
 
 
 Process *buildTree(void) {
-  pid_t pid, ppid;
-  DIR *proc;
-  struct dirent *proc_entry;
-  char *endptr, *proc_stat_filename;
-  FILE *proc_stat_file;
-  Process *process;
-
-  proc_stat_filename = calloc(PROC_STAT_FILENAME_MAX_LEN, sizeof(char));
-  if (!proc_stat_filename) {
-    perror("Failed to allocate space for /proc/PID/status");
-    exit(1);
-  }
-
-  process = malloc(sizeof(process));
-  if (!process) {
-    perror("Failed to allocate space for process");
-    free (proc_stat_filename);
-    exit(1);
-  }
-
-  proc = opendir("/proc");
-  if (!proc) {
-    perror("Failed to open /proc directory");
-    free(proc_stat_filename);
-    free(process);
-    exit(1);
-  }
-  
-  while ((proc_entry = readdir(proc))) {
-    if ((proc_entry->d_type & DT_DIR) &&  /* This not portable but, given that the stat(2) system call is not covered until Chapter 15, this will suffice */
-	strtol(proc_entry->d_name, &endptr, 10)) { /* PIDs must be natural numbers (aka postive integers) */
-      strcpy(proc_stat_filename, "/proc/");
-      strcat(proc_stat_filename, proc_entry->d_name);
-      strcat(proc_stat_filename, "/status");
-
-      proc_stat_file = fopen(proc_stat_filename, "r");
-      if (!proc_stat_file) {
-	if (errno == ENOENT)
-	  continue;
-	else {
-	  fprintf(stderr, "Failed to open %s:%s\n", proc_stat_filename, strerror(errno));
-	  continue;
-	}
-      }
-
-      if (!sscanf(proc_entry->d_name, "%u", &pid))
-	continue;
-
-      if (!sscanf(getProcValue("PPid", proc_stat_file), "%u", &ppid))
-	continue;
-
-      process = newProcess(pid, getProcValue("Name", proc_stat_file));
-      add2Tree(proc_tree, process, ppid);
-
-      fclose(proc_stat_file);
-      proc_stat_filename[0] = '\0';
-    }
-  }
-  
-  closedir(proc);
-  free(proc_stat_filename);
+  Process *proc_tree = newProcess(0, "TREE\n");
+  procMap(file2Node, proc_tree);
   return proc_tree;
 }
 
 
-void procMap(void (*lambda())) {
+void printUserProcs(uid_t uid) {
+  procMap(printProcIfOwner, uid);
+}
+
+
+void file2Node(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs) {
+  pid_t pid, ppid;
+  Process *process;
+  Process *tree = va_arg(vargs, Process*);
+
+  if (!sscanf(proc_entry->d_name, "%u", &pid))
+    return;
+
+  if (!sscanf(getProcValue("PPid", proc_stat_file), "%u", &ppid))
+    return;
+
+  process = newProcess(pid, getProcValue("Name", proc_stat_file));
+  add2Tree(tree, process, ppid);
+}
+
+
+void printProcIfOwner(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs) {
+  uid_t ruid;
+  char *proc_cmd;
+  
+   /* First, check if user owns process*/
+  if (!sscanf(getProcValue("Uid", proc_stat_file), "%u", &ruid) || (ruid != va_arg(vargs, uid_t)))
+    return;
+
+  if ((proc_cmd = getProcValue("Name", proc_stat_file)))
+    printf("%s %s", proc_entry->d_name, proc_cmd);
+}
+
+
+void procMap(void (*lambda)(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs), ...) {
   DIR *proc;
   struct dirent *proc_entry;
   char *endptr, *proc_stat_filename;
   FILE *proc_stat_file;
-
+  va_list vargs_master, vargs;
+  
+  va_start(vargs_master, lambda);
+  
   proc_stat_filename = calloc(PROC_STAT_FILENAME_MAX_LEN, sizeof(char));
   if (!proc_stat_filename) {
     perror("Failed to allocate space for /proc/PID/status");
@@ -228,14 +190,16 @@ void procMap(void (*lambda())) {
 	}
       }
 
-      lambda(proc_entry, proc_stat_file);
+      va_copy(vargs, vargs_master);
+      lambda(proc_entry, proc_stat_file, vargs);
+      va_end(vargs);
 
       fclose(proc_stat_file);
       proc_stat_filename[0] = '\0';
     }
   }
-  
+
+  va_end(vargs_master);
   closedir(proc);
   free(proc_stat_filename);
-  
 }
