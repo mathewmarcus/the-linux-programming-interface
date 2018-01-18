@@ -6,12 +6,8 @@
 
 int main(int argc, char *argv[argc])
 {
-
-  initTree();
-
-  /* Process *tree = buildTree(); */
-  /* displayTree(tree->child, 0); */
-  /* delProcess(tree); */
+  Process *tree = buildTree();
+  displayTree(tree->child, 0);
+  delProcess(tree);
   return 0;
 }
-
