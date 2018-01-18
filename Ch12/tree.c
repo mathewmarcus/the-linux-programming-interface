@@ -190,3 +190,52 @@ Process *buildTree(void) {
   free(proc_stat_filename);
   return proc_tree;
 }
+
+
+void procMap(void (*lambda())) {
+  DIR *proc;
+  struct dirent *proc_entry;
+  char *endptr, *proc_stat_filename;
+  FILE *proc_stat_file;
+
+  proc_stat_filename = calloc(PROC_STAT_FILENAME_MAX_LEN, sizeof(char));
+  if (!proc_stat_filename) {
+    perror("Failed to allocate space for /proc/PID/status");
+    exit(1);
+  }
+
+  proc = opendir("/proc");
+  if (!proc) {
+    perror("Failed to open /proc directory");
+    free(proc_stat_filename);
+    exit(1);
+  }
+
+  while ((proc_entry = readdir(proc))) {
+    if ((proc_entry->d_type & DT_DIR) &&  /* This not portable but, given that the stat(2) system call is not covered until Chapter 15, this will suffice */
+	strtol(proc_entry->d_name, &endptr, 10)) { /* PIDs must be natural numbers (aka postive integers) */
+      strcpy(proc_stat_filename, "/proc/");
+      strcat(proc_stat_filename, proc_entry->d_name);
+      strcat(proc_stat_filename, "/status");
+
+      proc_stat_file = fopen(proc_stat_filename, "r");
+      if (!proc_stat_file) {
+	if (errno == ENOENT)
+	  continue;
+	else {
+	  fprintf(stderr, "Failed to open %s:%s\n", proc_stat_filename, strerror(errno));
+	  continue;
+	}
+      }
+
+      lambda(proc_entry, proc_stat_file);
+
+      fclose(proc_stat_file);
+      proc_stat_filename[0] = '\0';
+    }
+  }
+  
+  closedir(proc);
+  free(proc_stat_filename);
+  
+}

@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <stdio.h>
+#include <dirent.h>
 
 
 typedef struct process {
@@ -24,5 +25,10 @@ Process *buildTree(void);
 char *getProcValue(char *key, FILE *proc_status);
 void displayTree(Process *tree, unsigned int num_spaces);
 
+
 void initTree(void);
 void freeTree(void);
+
+void procMap(void (*lambda()));
+void file2Node(struct dirent *proc_entry, FILE *proc_stat_file, Process *tree);
+
