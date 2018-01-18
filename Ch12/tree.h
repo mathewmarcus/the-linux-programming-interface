@@ -17,8 +17,12 @@ typedef struct process {
 
 Process *newProcess(pid_t pid, char *cmd);
 void delProcess(Process *proc);
+
 uid_t userName2UID(const char *username);
 int add2Tree(Process *tree, Process *new_proc, pid_t ppid);
 Process *buildTree(void);
 char *getProcValue(char *key, FILE *proc_status);
 void displayTree(Process *tree, unsigned int num_spaces);
+
+void initTree(void);
+void freeTree(void);

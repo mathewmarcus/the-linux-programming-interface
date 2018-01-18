@@ -8,6 +8,18 @@
 #include "tree.h"
 
 
+static Process *proc_tree;
+
+
+void initTree() {
+  proc_tree = newProcess(0, "TREE\n");
+}
+
+void delTree() {
+  delProcess(proc_tree);
+}
+
+
 Process *newProcess(pid_t pid, char *cmd) {
   Process *new_proc;
   if (!(new_proc = malloc(sizeof(Process)))) {
@@ -53,9 +65,6 @@ void displayTree(Process *tree, unsigned int num_spaces) {
 
 int add2Tree(Process *tree, Process *new_proc, pid_t ppid) {
   int result = 0;
-
-  if (!tree)
-    return 0;
 
   if (tree->pid == ppid) { /* Found parent */
     if (!tree->child) /* If parent has no children, set child = new_proc */
@@ -123,7 +132,7 @@ Process *buildTree(void) {
   struct dirent *proc_entry;
   char *endptr, *proc_stat_filename;
   FILE *proc_stat_file;
-  Process *proc_tree, *process;
+  Process *process;
 
   proc_stat_filename = calloc(PROC_STAT_FILENAME_MAX_LEN, sizeof(char));
   if (!proc_stat_filename) {
@@ -145,8 +154,6 @@ Process *buildTree(void) {
     free(process);
     exit(1);
   }
-
-  proc_tree = newProcess(0, "TREE\n");
   
   while ((proc_entry = readdir(proc))) {
     if ((proc_entry->d_type & DT_DIR) &&  /* This not portable but, given that the stat(2) system call is not covered until Chapter 15, this will suffice */
