@@ -8,6 +8,8 @@
 
 #include "tree.h"
 
+static void file2Node(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs);
+static void printProcIfOwner(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs);
 
 Process *newProcess(pid_t pid, char *cmd) {
   Process *new_proc;
@@ -122,7 +124,7 @@ void printUserProcs(uid_t uid) {
 }
 
 
-void file2Node(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs) {
+static void file2Node(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs) {
   pid_t pid, ppid;
   Process *process;
   Process *tree = va_arg(vargs, Process*);
@@ -138,7 +140,7 @@ void file2Node(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs) {
 }
 
 
-void printProcIfOwner(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs) {
+static void printProcIfOwner(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs) {
   uid_t ruid;
   char *proc_cmd;
   
