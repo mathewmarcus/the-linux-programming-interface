@@ -5,11 +5,13 @@
 #include <pwd.h>
 #include <dirent.h>
 #include <stdarg.h>
+#include <limits.h>
 
 #include "tree.h"
 
-static void file2Node(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs);
-static void printProcIfOwner(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs);
+static void file2Node(struct dirent *proc_entry, va_list vargs);
+static void printProcIfOwner(struct dirent *proc_entry, va_list vargs);
+static FILE *fopenProcStatus(char *pid_dir);
 
 Process *newProcess(pid_t pid, char *cmd) {
   Process *new_proc;
@@ -124,10 +126,35 @@ void printUserProcs(uid_t uid) {
 }
 
 
-static void file2Node(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs) {
+static FILE *fopenProcStatus(char *pid_dir) {
+  char proc_stat_filename[NAME_MAX];
+  FILE *proc_stat_file;
+
+  strcpy(proc_stat_filename, "/proc/");
+  strcat(proc_stat_filename, pid_dir);
+  strcat(proc_stat_filename, "/status");
+
+  proc_stat_file = fopen(proc_stat_filename, "r");
+  if (!proc_stat_file) {
+    if (errno == ENOENT)
+      return NULL;
+    else {
+      fprintf(stderr, "Failed to open %s:%s\n", proc_stat_filename, strerror(errno));
+      return NULL;
+    }
+  }
+
+  return proc_stat_file;
+}
+
+
+static void file2Node(struct dirent *proc_entry, va_list vargs) {
   pid_t pid, ppid;
   Process *process;
   Process *tree = va_arg(vargs, Process*);
+  FILE *proc_stat_file;
+
+  proc_stat_file = fopenProcStatus(proc_entry->d_name);
 
   if (!sscanf(proc_entry->d_name, "%u", &pid))
     return;
@@ -137,71 +164,54 @@ static void file2Node(struct dirent *proc_entry, FILE *proc_stat_file, va_list v
 
   process = newProcess(pid, getProcValue("Name", proc_stat_file));
   add2Tree(tree, process, ppid);
+
+  fclose(proc_stat_file);
 }
 
 
-static void printProcIfOwner(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs) {
+static void printProcIfOwner(struct dirent *proc_entry, va_list vargs) {
   uid_t ruid;
   char *proc_cmd;
-  
+  FILE *proc_stat_file;
+
+  proc_stat_file = fopenProcStatus(proc_entry->d_name);
+
    /* First, check if user owns process*/
   if (!sscanf(getProcValue("Uid", proc_stat_file), "%u", &ruid) || (ruid != va_arg(vargs, uid_t)))
     return;
 
   if ((proc_cmd = getProcValue("Name", proc_stat_file)))
     printf("%s %s", proc_entry->d_name, proc_cmd);
+
+  fclose(proc_stat_file);
 }
 
 
-void procMap(void (*lambda)(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs), ...) {
+void procMap(void (*lambda)(struct dirent *proc_entry, va_list vargs), ...) {
   DIR *proc;
   struct dirent *proc_entry;
-  char *endptr, *proc_stat_filename;
-  FILE *proc_stat_file;
+  char *endptr;
   va_list vargs_master, vargs;
   
   va_start(vargs_master, lambda);
   
-  proc_stat_filename = calloc(PROC_STAT_FILENAME_MAX_LEN, sizeof(char));
-  if (!proc_stat_filename) {
-    perror("Failed to allocate space for /proc/PID/status");
-    exit(1);
-  }
-
   proc = opendir("/proc");
   if (!proc) {
     perror("Failed to open /proc directory");
-    free(proc_stat_filename);
     exit(1);
   }
 
   while ((proc_entry = readdir(proc))) {
     if ((proc_entry->d_type & DT_DIR) &&  /* This not portable but, given that the stat(2) system call is not covered until Chapter 15, this will suffice */
 	strtol(proc_entry->d_name, &endptr, 10)) { /* PIDs must be natural numbers (aka postive integers) */
-      strcpy(proc_stat_filename, "/proc/");
-      strcat(proc_stat_filename, proc_entry->d_name);
-      strcat(proc_stat_filename, "/status");
-
-      proc_stat_file = fopen(proc_stat_filename, "r");
-      if (!proc_stat_file) {
-	if (errno == ENOENT)
-	  continue;
-	else {
-	  fprintf(stderr, "Failed to open %s:%s\n", proc_stat_filename, strerror(errno));
-	  continue;
-	}
-      }
 
       va_copy(vargs, vargs_master);
-      lambda(proc_entry, proc_stat_file, vargs);
+      lambda(proc_entry, vargs);
       va_end(vargs);
 
-      fclose(proc_stat_file);
-      proc_stat_filename[0] = '\0';
     }
   }
 
   va_end(vargs_master);
   closedir(proc);
-  free(proc_stat_filename);
 }

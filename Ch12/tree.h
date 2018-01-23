@@ -18,7 +18,7 @@ typedef struct process {
 uid_t userName2UID(const char *username);
 char *getProcValue(char *key, FILE *proc_status);
 
-void procMap(void (*lambda)(struct dirent *proc_entry, FILE *proc_stat_file, va_list vargs), ...);
+void procMap(void (*lambda)(struct dirent *proc_entry, va_list vargs), ...);
 
 void printUserProcs(uid_t uid);
 
