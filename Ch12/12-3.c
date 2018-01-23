@@ -3,7 +3,7 @@
 
 #include "tree.h"
 
-#define USAGE "Usage:  %s username\n"
+#define USAGE "Usage:  %s filename\n"
 
 int main(int argc, char *argv[argc])
 {
@@ -12,5 +12,5 @@ int main(int argc, char *argv[argc])
     exit(1);
   }
 
-  printUserProcs(userName2UID(argv[1]));
+  printPathProcs(argv[1]);
 }

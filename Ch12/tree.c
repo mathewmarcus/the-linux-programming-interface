@@ -11,6 +11,7 @@
 
 static void file2Node(struct dirent *proc_entry, va_list vargs);
 static void printProcIfOwner(struct dirent *proc_entry, va_list vargs);
+static void printProcIfHasFileOpen(struct dirent *proc_entry, va_list vargs);
 static FILE *fopenProcStatus(char *pid_dir);
 
 Process *newProcess(pid_t pid, char *cmd) {
@@ -123,6 +124,54 @@ Process *buildTree(void) {
 
 void printUserProcs(uid_t uid) {
   procMap(printProcIfOwner, uid);
+}
+
+
+void printPathProcs(char *pathname) {
+  procMap(printProcIfHasFileOpen, pathname);
+}
+
+
+static void printProcIfHasFileOpen(struct dirent *proc_entry, va_list vargs) {
+  DIR *proc_fds;
+  struct dirent *proc_fd;
+  char pathname[NAME_MAX], buffer[NAME_MAX], *filename;
+  ssize_t link_len;
+
+  filename = va_arg(vargs, char *);
+  
+  strcpy(pathname, "/proc/");
+  strcat(pathname, proc_entry->d_name);
+  strcat(pathname, "/fd");
+
+  proc_fds = opendir(pathname);
+
+  while ((proc_fd = readdir(proc_fds))) {
+    pathname[0] = '\0';
+
+    if (!(proc_fd->d_type & DT_LNK))
+      continue;
+
+    strcpy(pathname, "/proc/");
+    strcat(pathname, proc_entry->d_name);
+    strcat(pathname, "/fd/");
+    strcat(pathname, proc_fd->d_name);
+
+    link_len = readlink(pathname, buffer, NAME_MAX);
+    buffer[link_len] = '\0';
+
+    if (!strcmp(buffer, filename)) {
+      printf("PID: %s\n", proc_entry->d_name);
+      break;
+    }
+
+  }
+  if (!proc_fds) {
+    fprintf(stderr, "Failed to open directory %s: %s", pathname, strerror(errno));
+    exit(1);
+  }
+
+  closedir(proc_fds);
 }
 
 
